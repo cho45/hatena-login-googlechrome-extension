@@ -2,6 +2,10 @@
 
 * インストール
 
+https://github.com/cho45/hatena-login-googlechrome-extension/blob/master/src.crx
+
+* 開発
+
 git clone git@github.com:cho45/hatena-login-googlechrome-extension.git
 
 - [ツール] -> [拡張機能] で拡張機能ページを開く
