@@ -1,0 +1,6 @@
+
+git clone git@github.com:cho45/hatena-login-googlechrome-extension.git
+
+- [ツール] -> [拡張機能] で拡張機能ページを開く
+- [デバロッパーモード]をオンにする
+- [パッケージ化されていない拡張機能を読み込みます…] をクリックし、src ディレクトリを選択
