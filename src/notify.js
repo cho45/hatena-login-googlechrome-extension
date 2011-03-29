@@ -3,6 +3,45 @@ var http = Deferred.http;
 
 Hatena = {};
 Hatena.Login = {};
+Hatena.Login.API = {
+    identify : function () {
+        return next(function () {
+            return http.get('http://n.hatena.ne.jp/applications/my.json').
+            next(function (r) {
+                var data = JSON.parse(r.responseText);
+                return data.url_name;
+            }).
+            error(function () {
+                return null;
+            });
+        });
+    },
+
+    setRk : function (rk) {
+        chrome.cookies.set({
+            url : "http://www.hatena.ne.jp/",
+            name : "rk",
+            value : rk,
+            domain : ".hatena.ne.jp",
+            path : "/",
+            expirationDate : new Date().getTime() + 60 * 60 * 24 * 365
+        });
+    },
+
+    getRk : function () {
+        var ret = new Deferred();
+        chrome.cookies.get(
+            {
+                url : "http://www.hatena.ne.jp/",
+                name: "rk",
+            },
+            function (cookie) {
+                ret.call(cookie.value);
+            }
+        );
+        return ret;
+    },
+};
 Hatena.Login.Setting = {
     _get : function () {
         return JSON.parse(localStorage['users'] || '{}');
@@ -30,26 +69,44 @@ Hatena.Login.Setting = {
 
     current : function (val) {
         if (typeof val != "undefined") {
+            chrome.browserAction.setBadgeBackgroundColor({ color: [100, 100, 100, 200] });
+            chrome.browserAction.setBadgeText({ text : val || '' });
+            chrome.browserAction.setTitle({ title : val || '' });
             localStorage['current'] = val;
         }
-        localStorage['current'];
+        return localStorage['current'];
     }
 };
 
 Hatena.Login['background'] = function () {
+    Hatena.Login.API.identify().
+    next(function (user) {
+        Hatena.Login.Setting.current(user);
+        if (user) {
+            Hatena.Login.API.getRk().
+            next(function (cookie) {
+                if (cookie) {
+                    Hatena.Login.Setting.add(user, cookie);
+                }
+            });
+        }
+    });
+
     chrome.cookies.onChanged.addListener(function (e) {
         if (e.cookie.domain == ".hatena.ne.jp" && e.cookie.name == "rk") {
             if (!e.removed) {
                 var rk = e.cookie.value;
-                http.get('http://n.hatena.ne.jp/applications/my.json').next(function (r) { return JSON.parse(r.responseText) }).
-                next(function (data) {
-                    var old = Hatena.Login.Setting.get()[data.url_name];
+                Hatena.Login.API.identify().
+                next(function (user) {
+                    Hatena.Login.Setting.current(user);
+
+                    var old = Hatena.Login.Setting.get()[user];
                     if (old != rk) {
-                        Hatena.Login.Setting.add(data.url_name, rk);
+                        Hatena.Login.Setting.add(user, rk);
                         var notification = webkitNotifications.createNotification(
                             '48.png',
                             'Hatena',
-                            'Hatena extension saved this account: ' + data.url_name
+                            'Hatena extension saved this account: ' + user
                         );
                         notification.show();
                         setTimeout(function () {
@@ -58,6 +115,7 @@ Hatena.Login['background'] = function () {
                     }
                 });
             } else {
+                Hatena.Login.Setting.current(null);
             }
         }
     });
@@ -84,19 +142,14 @@ Hatena.Login['popup'] = function () {
         li.addEventListener('click', function (e) {
             var user = e.target._user;
             var rk   = e.target._rk;
-            chrome.cookies.set({
-                url : "http://www.hatena.ne.jp/",
-                name : "rk",
-                value : rk,
-                domain : ".hatena.ne.jp",
-                path : "/",
-                expirationDate : new Date().getTime() + 60 * 60 * 24 * 365
-            });
-            http.get('http://n.hatena.ne.jp/applications/my.json').next(function (r) { return JSON.parse(r.responseText) }).
-            next(function (data) {
-                if (data.url_name == user) {
+            Hatena.Login.Setting.current(user);
+            Hatena.Login.API.setRk(rk);
+            Hatena.Login.API.identify().
+            next(function (iuser) {
+                if (iuser == user) {
                     chrome.tabs.getSelected(undefined, function (tab) {
                         chrome.tabs.executeScript(tab.id, { code : 'location.reload(true)' }, function () {});
+                        window.close();
                     });
                 } else {
                     window.open('http://www.hatena.ne.jp/login');
@@ -115,19 +168,14 @@ Hatena.Login['popup'] = function () {
     li.appendChild(img);
     li.appendChild(document.createTextNode('Add user...'));
     li.addEventListener('click', function (e) {
-        chrome.cookies.get(
-            {
-                url : "http://www.hatena.ne.jp/",
-                name: "rk",
-            },
-            function (cookie) {
-                if (cookie) {
-                    window.open('http://www.hatena.ne.jp/logout?location=' + encodeURIComponent('http://www.hatena.ne.jp/login'));
-                } else {
-                    window.open('http://www.hatena.ne.jp/login');
-                }
+        Hatena.Login.API.getRk().
+        next(function (cookie) {
+            if (cookie) {
+                window.open('http://www.hatena.ne.jp/logout?location=' + encodeURIComponent('http://www.hatena.ne.jp/login'));
+            } else {
+                window.open('http://www.hatena.ne.jp/login');
             }
-        );
+        });
     }, false);
     parent.appendChild(li);
 };
