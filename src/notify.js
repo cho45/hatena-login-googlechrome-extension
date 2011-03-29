@@ -152,7 +152,14 @@ Hatena.Login['popup'] = function () {
                         window.close();
                     });
                 } else {
-                    window.open('http://www.hatena.ne.jp/login');
+                    Hatena.Login.API.getRk().
+                    next(function (cookie) {
+                        if (cookie) {
+                            window.open('http://www.hatena.ne.jp/logout?location=' + encodeURIComponent('http://www.hatena.ne.jp/login'));
+                        } else {
+                            window.open('http://www.hatena.ne.jp/login');
+                        }
+                    });
                 }
             });
         }, false);
