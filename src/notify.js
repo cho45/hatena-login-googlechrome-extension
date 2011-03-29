@@ -160,6 +160,15 @@ Hatena.Login['popup'] = function () {
                             window.open('http://www.hatena.ne.jp/login');
                         }
                     });
+                    var notification = webkitNotifications.createNotification(
+                        '48.png',
+                        'Hatena',
+                        'クッキーが切れたようなのでもっかいマミさんもぐもぐしてください'
+                    );
+                    notification.show();
+                    setTimeout(function () {
+                        notification.cancel();
+                    }, 3000);
                 }
             });
         }, false);
