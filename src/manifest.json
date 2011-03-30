@@ -20,6 +20,7 @@
 		"http://www.hatena.ne.jp/",
 		"http://n.hatena.ne.jp/",
 		"http://*.hatena.ne.jp/",
+		"http://www.st-hatena.com/",
 		"*://*.hatena.ne.jp/"
 	]
 }
