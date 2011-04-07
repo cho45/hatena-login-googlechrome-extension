@@ -1,26 +1,39 @@
 {
-	"name": "Hatena",
-	"version": "0.0.1",
-	"description": "Login",
-	"background_page": "background.html",
-	"browser_action": {
-		"default_icon": "16.png",
-		"popup": "popup.html"
-	},
-	"icons": {
-		"16": "16.png",
-		"48": "48.png",
-		"128": "128.png"
-	},
-	"permissions": [
-		"tabs",
-		"cookies",
-		"background",
-		"notifications",
-		"http://www.hatena.ne.jp/",
-		"http://n.hatena.ne.jp/",
-		"http://*.hatena.ne.jp/",
-		"http://www.st-hatena.com/",
-		"*://*.hatena.ne.jp/"
-	]
+    "name": "Hatena::Login",
+    "version": "0.0.1",
+    "description": "Login",
+    "background_page": "background.html",
+    "options_page": "options.html",
+    "browser_action": {
+        "default_icon": "16.png",
+        "popup": "popup.html"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "http://www.hatena.ne.jp/login",
+                "https://www.hatena.ne.jp/login"
+            ],
+            "js": [
+                "content.js"
+            ]
+        }
+    ],
+    "icons": {
+        "16": "16.png",
+        "48": "48.png",
+        "128": "128.png"
+    },
+    "permissions": [
+        "tabs",
+        "cookies",
+        "background",
+        "notifications",
+        "http://www.hatena.ne.jp/",
+        "https://www.hatena.ne.jp/",
+        "http://n.hatena.ne.jp/",
+        "http://*.hatena.ne.jp/",
+        "http://www.st-hatena.com/",
+        "*://*.hatena.ne.jp/"
+    ]
 }

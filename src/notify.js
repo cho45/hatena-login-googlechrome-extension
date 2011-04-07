@@ -1,6 +1,10 @@
 D().define(this);
 var http = Deferred.http;
 
+function debug (obj) {
+    webkitNotifications.createNotification('48.png','Hatena',JSON.stringify(obj)).show();
+}
+
 Hatena = {};
 Hatena.Login = {};
 Hatena.Login.API = {
@@ -52,11 +56,28 @@ Hatena.Login.API = {
                 name: "rk",
             },
             function (cookie) {
-                ret.call(cookie.value);
+                ret.call(cookie ? cookie.value : null);
             }
         );
         return ret;
     },
+
+    openLogin : function (message, user) {
+        localStorage['loginMessage'] = 'Hatena::Login extension: ' + message;
+        localStorage['loginUser'] = user;
+
+        return Hatena.Login.API.identify().
+        next(function (iuser) {
+            Hatena.Login.API.getRk().
+            next(function (cookie) {
+                if (cookie && iuser) {
+                    window.open('https://www.hatena.ne.jp/logout?location=' + encodeURIComponent('https://www.hatena.ne.jp/login'));
+                } else {
+                    window.open('https://www.hatena.ne.jp/login');
+                }
+            });
+        });
+    }
 };
 Hatena.Login.Setting = {
     _get : function () {
@@ -133,7 +154,7 @@ Hatena.Login['background'] = function () {
                         var notification = webkitNotifications.createNotification(
                             '48.png',
                             'Hatena',
-                            'Hatena extension saved this account: ' + user
+                            user + 'を記憶しました。'
                         );
                         notification.show();
                         setTimeout(function () {
@@ -146,10 +167,66 @@ Hatena.Login['background'] = function () {
             }
         }
     });
+
+    chrome.extension.onRequest.addListener(function (req, sender, callback) {
+        if (req.action == 'onLogin') {
+            var message = localStorage['loginMessage'];
+            var user    = localStorage['loginUser'];
+            delete localStorage['loginMessage'];
+            delete localStorage['loginUser'];
+            callback({
+                message : message,
+                user    : user
+            });
+        }
+    });
+};
+
+Hatena.Login['options'] = function init () {
+    var parent = document.getElementById('list');
+    parent.innerHTML = '';
+
+    Hatena.Login.Setting.del('undefined');
+
+    var current = Hatena.Login.Setting.current();
+    var users = Hatena.Login.Setting.get();
+    for (var key in users) if (users.hasOwnProperty(key)) {
+        var val = users[key];
+        var li = document.createElement('li');
+        var img = document.createElement('img');
+        img.src = 'http://www.st-hatena.com/users/' + key.substring(0, 2) + '/' + key + '/profile.gif';
+        li._rk = val;
+        li._user = key;
+        li.appendChild(img);
+        li.appendChild(document.createTextNode(key));
+        if (current == key) li.className = 'current';
+
+        li.addEventListener('click', function (e) {
+            var user = e.target._user;
+            var rk   = e.target._rk;
+            if (confirm(user + "を解除しますか? (はてなのIDが消えたりはしません)")) {
+                Hatena.Login.Setting.del(user);
+                init();
+            }
+        }, false);
+        parent.appendChild(li);
+    }
+
+    var li = document.createElement('li');
+    li.className = 'sep';
+    parent.appendChild(li);
+
+    var li = document.createElement('li');
+    var img = document.createElement('img');
+    li.appendChild(img);
+    li.appendChild(document.createTextNode('Add user...'));
+    li.addEventListener('click', function (e) {
+        Hatena.Login.API.openLogin('ログインすると拡張がユーザ情報を保存し、切替えられるようになります。', "");
+    }, false);
+    parent.appendChild(li);
 };
 
 Hatena.Login['popup'] = function () {
-
     var parent = document.getElementById('list');
     parent.innerHTML = '';
 
@@ -182,23 +259,7 @@ Hatena.Login['popup'] = function () {
                             window.close();
                         });
                     } else {
-                        Hatena.Login.API.getRk().
-                        next(function (cookie) {
-                            if (cookie) {
-                                window.open('http://www.hatena.ne.jp/logout?location=' + encodeURIComponent('http://www.hatena.ne.jp/login'));
-                            } else {
-                                window.open('http://www.hatena.ne.jp/login');
-                            }
-                        });
-                        var notification = webkitNotifications.createNotification(
-                            '48.png',
-                            'Hatena',
-                            'クッキーがきれたので再ログインしてください。'
-                        );
-                        notification.show();
-                        setTimeout(function () {
-                            notification.cancel();
-                        }, 3000);
+                        Hatena.Login.API.openLogin('クッキーがきれたので再ログインしてください。', user).error(function (e) { console.log(e); });
                     }
                 });
             });
@@ -215,14 +276,7 @@ Hatena.Login['popup'] = function () {
     li.appendChild(img);
     li.appendChild(document.createTextNode('Add user...'));
     li.addEventListener('click', function (e) {
-        Hatena.Login.API.getRk().
-        next(function (cookie) {
-            if (cookie) {
-                window.open('http://www.hatena.ne.jp/logout?location=' + encodeURIComponent('http://www.hatena.ne.jp/login'));
-            } else {
-                window.open('http://www.hatena.ne.jp/login');
-            }
-        });
+        Hatena.Login.API.openLogin('ログインすると拡張がユーザ情報を保存し、切替えられるようになります。', "");
     }, false);
     parent.appendChild(li);
 };
