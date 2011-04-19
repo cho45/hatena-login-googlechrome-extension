@@ -110,16 +110,18 @@ Hatena.Login.Setting = {
             chrome.browserAction.setBadgeText({ text : val || '' });
             chrome.browserAction.setTitle({ title : val || '' });
             chrome.browserAction.setIcon({ path : '16.png' });
-            var img = new Image();
-            img.onload = function () {
-                var canvas = document.createElement('canvas');
-                canvas.width = 19;
-                canvas.height = 19;
-                var ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, 18, 18);
-                chrome.browserAction.setIcon({ imageData : ctx.getImageData(0, 0, 18, 18) });
-            };
-            img.src = 'http://www.st-hatena.com/users/' + val.substring(0, 2) + '/' + val + '/profile.gif';
+            if (val) {
+                var img = new Image();
+                img.onload = function () {
+                    var canvas = document.createElement('canvas');
+                    canvas.width = 19;
+                    canvas.height = 19;
+                    var ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, 18, 18);
+                    chrome.browserAction.setIcon({ imageData : ctx.getImageData(0, 0, 18, 18) });
+                };
+                img.src = 'http://www.st-hatena.com/users/' + val.substring(0, 2) + '/' + val + '/profile.gif';
+            }
             localStorage['current'] = val;
         }
         return localStorage['current'];
@@ -259,6 +261,7 @@ Hatena.Login['popup'] = function () {
                             window.close();
                         });
                     } else {
+                        Hatena.Login.Setting.current(null);
                         Hatena.Login.API.openLogin('クッキーがきれたので再ログインしてください。', user).error(function (e) { console.log(e); });
                     }
                 });
@@ -274,7 +277,7 @@ Hatena.Login['popup'] = function () {
     var li = document.createElement('li');
     var img = document.createElement('img');
     li.appendChild(img);
-    li.appendChild(document.createTextNode('Add user...'));
+    li.appendChild(document.createTextNode('ユーザを追加...'));
     li.addEventListener('click', function (e) {
         Hatena.Login.API.openLogin('ログインすると拡張がユーザ情報を保存し、切替えられるようになります。', "");
     }, false);
