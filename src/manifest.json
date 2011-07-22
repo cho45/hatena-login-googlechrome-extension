@@ -33,7 +33,13 @@
         "https://www.hatena.ne.jp/",
         "http://n.hatena.ne.jp/",
         "http://*.hatena.ne.jp/",
+        "*://*.hatena.ne.jp/",
+
+        "http://www.hatena.com/",
+        "https://www.hatena.com/",
+        "http://n.hatena.com/",
+        "http://*.hatena.com/",
         "http://www.st-hatena.com/",
-        "*://*.hatena.ne.jp/"
+        "*://*.hatena.com/"
     ]
 }

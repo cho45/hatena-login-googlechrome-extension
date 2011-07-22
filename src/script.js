@@ -10,7 +10,7 @@ Hatena.Login = {};
 Hatena.Login.API = {
     identify : function () {
         return next(function () {
-            return http.get('http://n.hatena.ne.jp/applications/my.json?t=' + new Date().getTime()).
+            return http.get('http://n.hatena.com/applications/my.json?t=' + new Date().getTime()).
             next(function (r) {
                 var data = JSON.parse(r.responseText);
                 return data.url_name || null;
@@ -21,7 +21,7 @@ Hatena.Login.API = {
         });
     },
 
-    setRk : function (rk) {
+    setRk : function (rk, tld) {
         chrome.cookies.set({
             url : "http://www.hatena.ne.jp/",
             name : "rk",
@@ -31,28 +31,41 @@ Hatena.Login.API = {
             expirationDate : new Date().getTime() + 60 * 60 * 24 * 365
         });
 
-        var self = this;
-        return next(function check () {
-            return self.getRk().next(function (val) {
-                if (val == rk) {
-                    return true;
-                } else {
-                    webkitNotifications.createNotification(
-                        '48.png',
-                        'Hatena',
-                        'failed to set rk'
-                    ).show();
-                    return wait(0.2).next(check);
-                }
+        if (tld != 'ne.jp') {
+            chrome.cookies.set({
+                url : "http://www.hatena.com/",
+                name : "rk",
+                value : rk,
+                domain : ".hatena.com",
+                path : "/",
+                expirationDate : new Date().getTime() + 60 * 60 * 24 * 365
             });
-        });
+
+            var self = this;
+            return next(function check () {
+                return self.getRk().next(function (val) {
+                    if (val == rk) {
+                        return true;
+                    } else {
+                        webkitNotifications.createNotification(
+                            '48.png',
+                            'Hatena',
+                            'failed to set rk'
+                        ).show();
+                        return wait(0.2).next(check);
+                    }
+                });
+            });
+        } else {
+            return next();
+        }
     },
 
     getRk : function () {
         var ret = new Deferred();
         chrome.cookies.get(
             {
-                url : "http://www.hatena.ne.jp/",
+                url : "http://www.hatena.com/",
                 name: "rk",
             },
             function (cookie) {
@@ -71,9 +84,9 @@ Hatena.Login.API = {
             Hatena.Login.API.getRk().
             next(function (cookie) {
                 if (cookie && iuser) {
-                    window.open('https://www.hatena.ne.jp/logout?location=' + encodeURIComponent('https://www.hatena.ne.jp/login'));
+                    window.open('https://www.hatena.com/logout?location=' + encodeURIComponent('https://www.hatena.ne.jp/login'));
                 } else {
-                    window.open('https://www.hatena.ne.jp/login');
+                    window.open('https://www.hatena.com/login');
                 }
             });
         });
@@ -143,15 +156,18 @@ Hatena.Login['background'] = function () {
     });
 
     chrome.cookies.onChanged.addListener(function (e) {
-        if (e.cookie.domain == ".hatena.ne.jp" && e.cookie.name == "rk") {
+        if (e.cookie.domain == ".hatena.com" && e.cookie.name == "rk") {
             if (!e.removed) {
                 var rk = e.cookie.value;
+
                 Hatena.Login.API.identify().
                 next(function (user) {
                     Hatena.Login.Setting.current(user);
 
+                    Hatena.Login.API.setRk(rk, 'ne.jp');
+
                     var old = Hatena.Login.Setting.get()[user];
-                    if (old != rk) {
+                    if (old != rk && user) {
                         Hatena.Login.Setting.add(user, rk);
                         var notification = webkitNotifications.createNotification(
                             '48.png',
